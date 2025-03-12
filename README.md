@@ -65,3 +65,6 @@ This is a basic version with simplified graphics. Future versions will include m
 - **Space**: Restart game after landing/crash
 
 Good luck with your catch! # falcon_play
+
+## Screenshots
+<img src="images/game_01.png" width="50%" height="50%">
