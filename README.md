@@ -68,3 +68,5 @@ Good luck with your catch! # falcon_play
 
 ## Screenshots
 <img src="images/game_01.png" width="50%" height="50%">
+
+<img src="images/game_02.png" width="50%" height="50%">
