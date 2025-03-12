@@ -2,6 +2,8 @@
 
 A physics-based game inspired by SpaceX Falcon rocket landings on the Mechazilla tower.
 
+It was made entirely by using Cursor ai.
+
 ## How to Play
 
 1. Open `index.html` in your browser to start the game.

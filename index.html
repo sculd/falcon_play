@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Falcon Landing</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div class="hud">
+            <div id="fuel">Fuel: 100%</div>
+            <div id="velocity">Velocity: 0 m/s</div>
+            <div id="thrust">Thrust: 0%</div>
+            <div id="score">Score: 0</div>
+            <div id="difficulty">Difficulty: 1</div>
+            <div id="alignment-status">Status: Not aligned</div>
+        </div>
+        <div id="gameOver" class="hidden">
+            <h2 id="gameOverMessage">Game Over!</h2>
+            <div class="score-display">Final Score: <span id="finalScore">0</span></div>
+            <button id="restartButton">Restart</button>
+            <div class="restart-hint">or press SPACE to restart</div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html> 

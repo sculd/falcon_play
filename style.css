@@ -1,0 +1,106 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+.game-container {
+    position: relative;
+    width: 1200px;
+    height: 600px;
+    border: 2px solid #333;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+canvas {
+    background-color: #000;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.hud div {
+    margin-bottom: 5px;
+}
+
+#difficulty {
+    margin-top: 10px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ff9500;
+    font-weight: bold;
+}
+
+#gameOver {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    width: 300px;
+}
+
+.score-display {
+    margin: 15px 0;
+    font-size: 18px;
+    color: #ffcc00;
+}
+
+#finalScore {
+    font-weight: bold;
+    font-size: 20px;
+}
+
+#restartButton {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin-top: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+#restartButton:hover {
+    background-color: #2980b9;
+}
+
+#restartButton:focus {
+    outline: 2px solid #4fc3f7;
+    background-color: #2980b9;
+}
+
+.restart-hint {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #aaa;
+}
+
+.hidden {
+    display: none;
+} 
