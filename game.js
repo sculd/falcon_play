@@ -681,14 +681,21 @@ function resetGame() {
     let randomX;
     // Calculate distance from catch arm based on difficulty
     // Difficulty 1: Start between 60% and 70% of canvas width (close to catch arm)
-    // Difficulty 5: Start between 20% and 30% of canvas width (far from catch arm)
-    const maxDistance = 0.40; // Closest to right edge at difficulty 1
-    const minDistance = 0.20; // Farthest from right edge at difficulty 5
+    // Difficulty 2-3: Start between 20% and 30% of canvas width (far from catch arm)
+    // Difficulty 4-5: Start between 20% and 30% of canvas width on the left side
+    const maxDistance = 0.40; // Maximum distance from center
+    const minDistance = 0.20; // Minimum distance from center
     const distanceRange = 0.10; // Range of random variation
     
     // Linear interpolation between max and min distance based on difficulty
-    const baseDistance = minDistance + ((difficultyLevel - 1) / 4) * (maxDistance - minDistance);
-    randomX = CANVAS_WIDTH * (0.5 + (baseDistance - Math.random() * distanceRange))
+    const baseDistance = minDistance + ((Math.min(difficultyLevel, 3) - 1) / 2) * (maxDistance - minDistance);
+    
+    // For difficulty levels 4 and 5, start from the left side
+    if (difficultyLevel >= 4) {
+        randomX = CANVAS_WIDTH * (0.5 - (baseDistance + Math.random() * distanceRange));
+    } else {
+        randomX = CANVAS_WIDTH * (0.5 + (baseDistance + Math.random() * distanceRange));
+    }
     
     const randomY = 50 + Math.random() * 50
     const randomAngle = (Math.random() - 0.5) * (0.2 * difficultyFactor); // Larger initial tilt with difficulty
