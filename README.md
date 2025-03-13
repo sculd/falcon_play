@@ -67,6 +67,6 @@ This is a basic version with simplified graphics. Future versions will include m
 Good luck with your catch! # falcon_play
 
 ## Screenshots
-<img src="images/game_01.png" width="50%" height="50%">
+<img src="images/game_01.png" width="100%" height="100%">
 
-<img src="images/game_02.png" width="50%" height="50%">
+<img src="images/game_02.png" width="100%" height="100%">

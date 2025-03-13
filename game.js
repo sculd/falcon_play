@@ -41,6 +41,13 @@ let alignmentStartTime = 0; // Time when alignment started
 let alignmentDuration = 0; // How long the rocket has been aligned
 const REQUIRED_ALIGNMENT_DURATION = 30; // Frames required to maintain alignment (about 1 second at 60fps)
 
+// FPS tracking variables
+let lastFrameTime = performance.now();
+let frameCount = 0;
+let lastFpsUpdate = performance.now();
+let currentFps = 0;
+const fpsUpdateInterval = 500; // Update FPS display every 500ms
+
 // UI elements
 const fuelDisplay = document.getElementById('fuel');
 const velocityDisplay = document.getElementById('velocity');
@@ -52,6 +59,7 @@ const finalScoreElement = document.getElementById('finalScore');
 const restartButton = document.getElementById('restartButton');
 const canvas = document.getElementById('gameCanvas');
 const alignmentStatusDisplay = document.getElementById('alignment-status');
+const fpsDisplay = document.getElementById('fps');
 // Add debug display element
 const debugDisplayElement = document.getElementById('debug-values') || document.createElement('div');
 if (!debugDisplayElement.id) {
@@ -96,7 +104,7 @@ function init() {
     // Create rocket (more detailed with catch points)
     const rocketBody = Bodies.rectangle(CANVAS_WIDTH / 2, 50, 14, 70, {
         density: 0.01,
-        frictionAir: 0.02,
+        frictionAir: 0.012,
         restitution: 0.15,
         render: {
             fillStyle: '#e0e0e0',
@@ -199,8 +207,26 @@ function init() {
 
 // Handle keyboard controls
 const keys = {};
+let lastLandingTime = 0; // Add timestamp for last landing attempt
+
 document.addEventListener('keydown', (e) => {
     keys[e.key] = true;
+    
+    // Handle space key press
+    if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault(); // Prevent page scrolling
+        
+        // If game is active, attempt landing
+        if (gameActive) {
+            attemptLanding();
+            lastLandingTime = Date.now(); // Record when landing was attempted
+        } 
+        // Only allow restart if game is not active AND it's been at least 500ms since landing
+        else if (!gameActive && Date.now() - lastLandingTime > 500) {
+            resetGame();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+    }
 });
 document.addEventListener('keyup', (e) => {
     keys[e.key] = false;
@@ -208,6 +234,20 @@ document.addEventListener('keyup', (e) => {
 
 // Game loop
 function gameLoop() {
+    // Calculate FPS
+    const currentTime = performance.now();
+    frameCount++;
+    
+    // Update FPS display every 500ms
+    if (currentTime - lastFpsUpdate >= fpsUpdateInterval) {
+        currentFps = Math.round((frameCount * 1000) / (currentTime - lastFpsUpdate));
+        fpsDisplay.textContent = `FPS: ${currentFps}`;
+        frameCount = 0;
+        lastFpsUpdate = currentTime;
+    }
+    
+    lastFrameTime = currentTime;
+
     // Always draw the rocket with catch points, even when game is over
     drawRocketWithCatchPoints();
     
@@ -327,6 +367,76 @@ function limitRocketSpeed() {
     }
 }
 
+// Attempt landing when space is pressed
+function attemptLanding() {
+    // If no rocket or tower, or game not active, exit early
+    if (!rocket || !rightCatchArm || !gameActive) return;
+    
+    // Calculate rocket's velocity
+    const landingVelocity = Math.sqrt(
+        rocket.velocity.x * rocket.velocity.x + 
+        rocket.velocity.y * rocket.velocity.y
+    );
+    
+    // Check if rocket is upright
+    const isUprightLanding = Math.abs(rocket.angle % (2 * Math.PI)) < 0.35 || 
+                             Math.abs(rocket.angle % (2 * Math.PI) - 2 * Math.PI) < 0.35;
+    
+    // Calculate the position of the rocket's right catch point in world coordinates
+    const catchPointY = -35 + 15; // Relative to rocket center (-35 is half height, +15 is catch point offset)
+    const catchPointX = 7 + 2;   // Half width (7 = 14/2) + catch point offset
+    
+    // Transform the catch point position based on rocket's position and angle
+    const rotatedX = Math.cos(rocket.angle) * catchPointX - Math.sin(rocket.angle) * catchPointY;
+    const rotatedY = Math.sin(rocket.angle) * catchPointX + Math.cos(rocket.angle) * catchPointY;
+    
+    const worldCatchPointX = rocket.position.x + rotatedX;
+    const worldCatchPointY = rocket.position.y + rotatedY;
+    
+    // Check distance to the right catch arm
+    const horizontalDistance = Math.abs(worldCatchPointX - rightCatchArm.position.x);
+    const verticalDistance = Math.abs(worldCatchPointY - rightCatchArm.position.y);
+    
+    // More forgiving alignment tolerance based on catch arm width
+    // Horizontal tolerance is half the catch arm width
+    const horizontalTolerance = rightCatchArm.bounds.max.x - rightCatchArm.bounds.min.x;
+    const isAligned = horizontalDistance < (horizontalTolerance / 2) && verticalDistance < 12;
+    
+    // Check if the rocket is properly positioned - slow velocity, upright, and aligned
+    const isWellPositioned = landingVelocity < 3 && isUprightLanding && isAligned;
+    
+    if (isWellPositioned) {
+        // Perfect mechazilla alignment - mission successful!
+        score += 2000;
+        gameOverMessage = 'Perfect Mechazilla Catch!';
+        
+        // Add velocity bonus for successful landings
+        if (landingVelocity < 1.2) {
+            score += 300;
+        } else if (landingVelocity < 1.8) {
+            score += 150;
+        }
+        
+        // Add fuel bonus
+        score += Math.round(fuel) * 2;
+        
+        // Attach the rocket to the catch arm
+        attachRocketToCatchArm();
+        
+        endGame();
+    } else {
+        // Different failure messages based on what went wrong
+        if (!isUprightLanding) {
+            gameOverMessage = 'Landing Failed: Not Upright!';
+        } else if (landingVelocity >= 3) {
+            gameOverMessage = 'Landing Failed: Too Fast!';
+        } else if (!isAligned) {
+            gameOverMessage = 'Landing Failed: Not Aligned!';
+        }
+        endGame();
+    }
+}
+
 // Check if the rocket is properly aligned with the catch arm
 function checkForAlignmentLanding() {
     // If no rocket or tower, or game not active, exit early
@@ -338,7 +448,7 @@ function checkForAlignmentLanding() {
         rocket.velocity.y * rocket.velocity.y
     );
     
-    // Check if rocket is upright (same criteria as before)
+    // Check if rocket is upright
     const isUprightLanding = Math.abs(rocket.angle % (2 * Math.PI)) < 0.35 || 
                              Math.abs(rocket.angle % (2 * Math.PI) - 2 * Math.PI) < 0.35;
     
@@ -375,66 +485,39 @@ function checkForAlignmentLanding() {
         Velocity: ${landingVelocity.toFixed(2)} (max 3) ${landingVelocity < 3 ? '✓' : '✗'}<br>
         Catch Point: (${worldCatchPointX.toFixed(0)}, ${worldCatchPointY.toFixed(0)})<br>
         Catch Arm: (${rightCatchArm.position.x.toFixed(0)}, ${rightCatchArm.position.y.toFixed(0)})<br>
-        Well Positioned: ${isWellPositioned ? 'YES ✓' : 'NO ✗'}<br>
-        Alignment Duration: ${alignmentDuration}/${REQUIRED_ALIGNMENT_DURATION}
+        Well Positioned: ${isWellPositioned ? 'YES ✓ (Press SPACE to land!)' : 'NO ✗'}<br>
     `;
     
     // Update alignment status display
     if (!isUprightLanding) {
-        alignmentStatusDisplay.textContent = 'Status: Not upright';
+        alignmentStatusDisplay.textContent = 'Status: Not upright (Need to be vertical)';
         alignmentStatusDisplay.style.color = '#ff3300';
-    } else if (landingVelocity >= 3) {
-        alignmentStatusDisplay.textContent = 'Status: Too fast';
-        alignmentStatusDisplay.style.color = '#ff3300';
-    } else if (!isAligned) {
-        alignmentStatusDisplay.textContent = 'Status: Not aligned';
-        alignmentStatusDisplay.style.color = '#ff3300';
-    } else {
-        // Show progress toward successful catch
-        const progress = Math.min(99, Math.floor((alignmentDuration / REQUIRED_ALIGNMENT_DURATION) * 100));
-        alignmentStatusDisplay.textContent = `Status: Catching (${progress}%)`;
-        alignmentStatusDisplay.style.color = '#00ff00';
-    }
-    
-    // Manage alignment duration
-    if (isWellPositioned) {
-        // Increment alignment duration counter
-        alignmentDuration++;
-        
-        // Optional: Visual feedback that alignment is happening
-        if (alignmentDuration % 10 === 0) {
-            // Flash the catch arm or something to indicate good positioning
-            rightCatchArm.render.strokeStyle = alignmentDuration % 20 === 0 ? '#ff3300' : '#00ff00';
-        }
-        
-        // Check if alignment duration requirement is met
-        if (alignmentDuration >= REQUIRED_ALIGNMENT_DURATION) {
-            // Perfect mechazilla alignment - mission successful!
-            score += 2000;
-            gameOverMessage = 'Perfect Mechazilla Catch!';
-            
-            // Add velocity bonus for successful landings
-            if (landingVelocity < 1.2) {
-                score += 300;
-            } else if (landingVelocity < 1.8) {
-                score += 150;
-            }
-            
-            // Add fuel bonus
-            score += Math.round(fuel) * 2;
-            
-            // Attach the rocket to the catch arm
-            attachRocketToCatchArm();
-            
-            endGame();
-        }
-    } else {
-        // Reset alignment duration if not well positioned
-        alignmentDuration = 0;
         // Reset catch arm color
-        if (rightCatchArm.render.strokeStyle !== '#ff3300') {
-            rightCatchArm.render.strokeStyle = '#ff3300';
-        }
+        rightCatchArm.render.strokeStyle = difficultyLevel === 1 ? '#ff3300' : 
+                                         difficultyLevel === 2 ? '#ff6600' : 
+                                         difficultyLevel === 3 ? '#ff9900' : 
+                                         difficultyLevel === 4 ? '#ffcc00' : '#ffff00';
+    } else if (landingVelocity >= 3) {
+        alignmentStatusDisplay.textContent = 'Status: Too fast (Slow down)';
+        alignmentStatusDisplay.style.color = '#ff3300';
+        // Reset catch arm color
+        rightCatchArm.render.strokeStyle = difficultyLevel === 1 ? '#ff3300' : 
+                                         difficultyLevel === 2 ? '#ff6600' : 
+                                         difficultyLevel === 3 ? '#ff9900' : 
+                                         difficultyLevel === 4 ? '#ffcc00' : '#ffff00';
+    } else if (!isAligned) {
+        alignmentStatusDisplay.textContent = 'Status: Not aligned with catch arm';
+        alignmentStatusDisplay.style.color = '#ff3300';
+        // Reset catch arm color
+        rightCatchArm.render.strokeStyle = difficultyLevel === 1 ? '#ff3300' : 
+                                         difficultyLevel === 2 ? '#ff6600' : 
+                                         difficultyLevel === 3 ? '#ff9900' : 
+                                         difficultyLevel === 4 ? '#ffcc00' : '#ffff00';
+    } else {
+        alignmentStatusDisplay.textContent = '✨ PRESS SPACE TO ATTEMPT LANDING! ✨';
+        alignmentStatusDisplay.style.color = '#00ff00';
+        // Show solid green when ready to land
+        rightCatchArm.render.strokeStyle = '#00ff00';
     }
 }
 
@@ -511,7 +594,16 @@ function endGame() {
         // Increase difficulty every 2 successful landings
         if (successfulLandings % 2 === 0 && difficultyLevel < 5) {
             difficultyLevel++;
+            gameOverMessageElement.textContent = `${gameOverMessage}\nDifficulty increased to level ${difficultyLevel}!`;
         }
+
+        // Update the restart hint to be more celebratory
+        document.querySelector('.restart-hint').textContent = '🎉 Press SPACE for next round! 🎉';
+        restartButton.textContent = 'Next Round';
+    } else {
+        // Reset the restart hint and button text for failures
+        document.querySelector('.restart-hint').textContent = 'or press SPACE to restart';
+        restartButton.textContent = 'Restart';
     }
     
     // Add focus to the restart button for keyboard accessibility
@@ -556,7 +648,14 @@ function resetGame() {
     const difficultyFactor = 1 + (difficultyLevel - 1) * 0.2; // Each level increases randomness by 20%
     
     // Generate random starting conditions with increasing difficulty
-    const randomX = CANVAS_WIDTH * (0.2 + Math.random() * 0.6); // Between 20% and 80% of canvas width (expanded range)
+    let randomX;
+    if (difficultyLevel === 1) {
+        // For difficulty 1, start on the right side (between 70% and 90% of canvas width)
+        randomX = CANVAS_WIDTH * (0.7 + Math.random() * 0.2);
+    } else {
+        // For other difficulties, use the full range (between 20% and 80% of canvas width)
+        randomX = CANVAS_WIDTH * (0.2 + Math.random() * 0.6);
+    }
     const randomY = 50 + Math.random() * (50 * difficultyFactor); // Higher starting position with difficulty
     const randomAngle = (Math.random() - 0.5) * (0.2 * difficultyFactor); // Larger initial tilt with difficulty
     
@@ -616,17 +715,9 @@ function resetGame() {
 
 // Restart the game
 restartButton.addEventListener('click', () => {
-    resetGame();
-    animationFrameId = requestAnimationFrame(gameLoop);
-});
-
-// Add keyboard support for restart
-document.addEventListener('keydown', function handleRestart(e) {
-    // Space key to restart when game is over
-    if (!gameActive && (e.code === 'Space' || e.key === ' ')) {
+    if (Date.now() - lastLandingTime > 500) {
         resetGame();
         animationFrameId = requestAnimationFrame(gameLoop);
-        e.preventDefault(); // Prevent page scrolling
     }
 });
 

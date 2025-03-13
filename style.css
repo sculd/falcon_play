@@ -43,6 +43,14 @@ canvas {
     margin-bottom: 5px;
 }
 
+#controls-hint {
+    margin-top: 10px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    color: #aaaaaa;
+    font-style: italic;
+}
+
 #difficulty {
     margin-top: 10px;
     padding-top: 5px;
