@@ -577,7 +577,30 @@ function setupCollisionDetection() {
 function endGame() {
     gameActive = false;
     scoreDisplay.textContent = `Score: ${score}`;
-    gameOverMessageElement.textContent = gameOverMessage;
+    
+    // Create score breakdown with HTML line breaks
+    let scoreBreakdown = '';
+    if (gameOverMessage.includes('Perfect Mechazilla Catch')) {
+        const landingVelocity = Math.sqrt(rocket.velocity.x * rocket.velocity.x + rocket.velocity.y * rocket.velocity.y);
+        const fuelEfficiencyBonus = Math.round((fuel / INITIAL_FUEL) * 1000); // Calculate bonus based on fuel efficiency
+        score = 1000; // Base score for landing
+        scoreBreakdown = `<br><br>Score Breakdown:<br>---------------<br>Base Landing: 1000<br>`;
+        if (landingVelocity < 1.2) {
+            score += 300;
+            scoreBreakdown += `Perfect Landing Speed: +300<br>`;
+        } else if (landingVelocity < 1.8) {
+            score += 150;
+            scoreBreakdown += `Good Landing Speed: +150<br>`;
+        }
+        score += fuelEfficiencyBonus;
+        scoreBreakdown += `Fuel Efficiency Bonus: +${fuelEfficiencyBonus}<br>---------------<br>Total Score: ${score}`;
+    } else if (gameOverMessage.includes('Almost! Missed the catch arm')) {
+        scoreBreakdown = `<br><br>Score Breakdown:<br>---------------<br>Tower Contact Bonus: 300<br>---------------<br>Total Score: ${score}`;
+    } else {
+        scoreBreakdown = `<br><br>Total Score: ${score}`;
+    }
+    
+    gameOverMessageElement.innerHTML = `${gameOverMessage}${scoreBreakdown}`;
     finalScoreElement.textContent = score;
     gameOverElement.classList.remove('hidden');
     
@@ -594,7 +617,7 @@ function endGame() {
         // Increase difficulty every 2 successful landings
         if (successfulLandings % 2 === 0 && difficultyLevel < 5) {
             difficultyLevel++;
-            gameOverMessageElement.textContent = `${gameOverMessage}\nDifficulty increased to level ${difficultyLevel}!`;
+            gameOverMessageElement.innerHTML = `${gameOverMessage}${scoreBreakdown}<br><br>Difficulty increased to level ${difficultyLevel}!`;
         }
 
         // Update the restart hint to be more celebratory
@@ -649,13 +672,17 @@ function resetGame() {
     
     // Generate random starting conditions with increasing difficulty
     let randomX;
-    if (difficultyLevel === 1) {
-        // For difficulty 1, start on the right side (between 70% and 90% of canvas width)
-        randomX = CANVAS_WIDTH * (0.7 + Math.random() * 0.2);
-    } else {
-        // For other difficulties, use the full range (between 20% and 80% of canvas width)
-        randomX = CANVAS_WIDTH * (0.2 + Math.random() * 0.6);
-    }
+    // Calculate distance from catch arm based on difficulty
+    // Difficulty 1: Start between 60% and 70% of canvas width (close to catch arm)
+    // Difficulty 5: Start between 20% and 30% of canvas width (far from catch arm)
+    const maxDistance = 0.70; // Closest to right edge at difficulty 1
+    const minDistance = 0.20; // Farthest from right edge at difficulty 5
+    const distanceRange = 0.10; // Range of random variation
+    
+    // Linear interpolation between max and min distance based on difficulty
+    const baseDistance = maxDistance - ((difficultyLevel - 1) / 4) * (maxDistance - minDistance);
+    randomX = CANVAS_WIDTH * (baseDistance - Math.random() * distanceRange);
+    
     const randomY = 50 + Math.random() * (50 * difficultyFactor); // Higher starting position with difficulty
     const randomAngle = (Math.random() - 0.5) * (0.2 * difficultyFactor); // Larger initial tilt with difficulty
     
