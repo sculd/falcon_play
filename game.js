@@ -682,15 +682,15 @@ function resetGame() {
     // Calculate distance from catch arm based on difficulty
     // Difficulty 1: Start between 60% and 70% of canvas width (close to catch arm)
     // Difficulty 5: Start between 20% and 30% of canvas width (far from catch arm)
-    const maxDistance = 0.70; // Closest to right edge at difficulty 1
+    const maxDistance = 0.40; // Closest to right edge at difficulty 1
     const minDistance = 0.20; // Farthest from right edge at difficulty 5
     const distanceRange = 0.10; // Range of random variation
     
     // Linear interpolation between max and min distance based on difficulty
-    const baseDistance = maxDistance - ((difficultyLevel - 1) / 4) * (maxDistance - minDistance);
-    randomX = CANVAS_WIDTH * (baseDistance - Math.random() * distanceRange);
+    const baseDistance = minDistance + ((difficultyLevel - 1) / 4) * (maxDistance - minDistance);
+    randomX = CANVAS_WIDTH * (0.5 + (baseDistance - Math.random() * distanceRange))
     
-    const randomY = 50 + Math.random() * (50 * difficultyFactor); // Higher starting position with difficulty
+    const randomY = 50 + Math.random() * 50
     const randomAngle = (Math.random() - 0.5) * (0.2 * difficultyFactor); // Larger initial tilt with difficulty
     
     // Random initial velocity with much more variance
@@ -698,7 +698,7 @@ function resetGame() {
     const randomVelocityX = (Math.random() - 0.5) * speedVariance; // More extreme horizontal velocity
     
     // Random Y velocity can now be both positive and negative (sometimes rocket moving up)
-    const randomVelocityY = (Math.random() * 2 - 0.8) * difficultyFactor; // More variable vertical speed
+    const randomVelocityY = difficultyFactor + (Math.random() * 2 - 0.8) * difficultyFactor; // More variable vertical speed
     
     // Sometimes add a sudden "burst" of velocity for extra challenge
     if (difficultyLevel > 1 && Math.random() < 0.3) {
