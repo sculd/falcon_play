@@ -30,6 +30,7 @@ let rocketCatchConstraint2; // Constraint for the left catch point
 let gameActive = false;
 let fuel = INITIAL_FUEL;
 let score = 0;
+let totalScore = 0; // Track accumulated score across levels
 let gameOverMessage = '';
 let thrusterActive = false;
 let difficultyLevel = 1; // Start at level 1
@@ -216,13 +217,16 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault(); // Prevent page scrolling
         
+        const currentTime = Date.now();
+        
         // If game is active, attempt landing
         if (gameActive) {
             attemptLanding();
-            lastLandingTime = Date.now(); // Record when landing was attempted
+            lastLandingTime = currentTime;
         } 
-        // Only allow restart if game is not active AND it's been at least 500ms since landing
-        else if (!gameActive && Date.now() - lastLandingTime > 500) {
+        // For restarting, use a shorter cooldown period
+        else if (!gameActive && currentTime - lastLandingTime > 100) {
+            lastLandingTime = currentTime;
             resetGame();
             animationFrameId = requestAnimationFrame(gameLoop);
         }
@@ -593,15 +597,18 @@ function endGame() {
             scoreBreakdown += `Good Landing Speed: +150<br>`;
         }
         score += fuelEfficiencyBonus;
-        scoreBreakdown += `Fuel Efficiency Bonus: +${fuelEfficiencyBonus}<br>---------------<br>Total Score: ${score}`;
+        scoreBreakdown += `Fuel Efficiency Bonus: +${fuelEfficiencyBonus}<br>---------------<br>`;
+        totalScore += score; // Add current score to total
+        scoreBreakdown += `Level Score: ${score}<br>Total Score: ${totalScore}`;
     } else if (gameOverMessage.includes('Almost! Missed the catch arm')) {
-        scoreBreakdown = `<br><br>Score Breakdown:<br>---------------<br>Tower Contact Bonus: 300<br>---------------<br>Total Score: ${score}`;
+        totalScore += score; // Add current score to total
+        scoreBreakdown = `<br><br>Score Breakdown:<br>---------------<br>Tower Contact Bonus: 300<br>---------------<br>Level Score: ${score}<br>Total Score: ${totalScore}`;
     } else {
-        scoreBreakdown = `<br><br>Total Score: ${score}`;
+        scoreBreakdown = `<br><br>Level Score: ${score}<br>Total Score: ${totalScore}`;
     }
     
     gameOverMessageElement.innerHTML = `${gameOverMessage}${scoreBreakdown}`;
-    finalScoreElement.textContent = score;
+    finalScoreElement.textContent = totalScore; // Show total score instead of current score
     gameOverElement.classList.remove('hidden');
     
     // Move debug display to the bottom left when game is over
@@ -614,8 +621,8 @@ function endGame() {
     if (gameOverMessage.includes('Perfect Mechazilla Catch')) {
         successfulLandings++;
         
-        // Increase difficulty every 2 successful landings
-        if (successfulLandings % 2 === 0 && difficultyLevel < 5) {
+        // Increase difficulty after each successful landing
+        if (difficultyLevel < 5) {
             difficultyLevel++;
             gameOverMessageElement.innerHTML = `${gameOverMessage}${scoreBreakdown}<br><br>Difficulty increased to level ${difficultyLevel}!`;
         }
@@ -738,11 +745,18 @@ function resetGame() {
         debugDisplayElement.style.top = '120px';
         debugDisplayElement.style.bottom = 'auto';
     }
+
+    // Only reset total score when starting from level 1
+    if (difficultyLevel === 1) {
+        totalScore = 0;
+    }
 }
 
 // Restart the game
 restartButton.addEventListener('click', () => {
-    if (Date.now() - lastLandingTime > 500) {
+    const currentTime = Date.now();
+    if (currentTime - lastLandingTime > 100) {
+        lastLandingTime = currentTime;
         resetGame();
         animationFrameId = requestAnimationFrame(gameLoop);
     }
